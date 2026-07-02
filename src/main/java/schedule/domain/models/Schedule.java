@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public record Schedule(ScheduleId scheduleId, TenantId tenantId, Map<TimeSlot, SlotStatus> timeSlots) {
+public record Schedule(ScheduleId scheduleId, TenantId tenantId, SequenceNumber sequenceNumber, Map<TimeSlot, SlotStatus> timeSlots) {
 
     public Schedule {
         Objects.requireNonNull(timeSlots, "timeSlots cannot be null");
@@ -33,7 +33,7 @@ public record Schedule(ScheduleId scheduleId, TenantId tenantId, Map<TimeSlot, S
         }
         var modifiedTimeSlots = new HashMap<>(timeSlots);
         modifiedTimeSlots.put(timeSlot, SlotStatus.RESERVED);
-        return new Schedule(scheduleId, tenantId, modifiedTimeSlots);
+        return new Schedule(scheduleId, tenantId, sequenceNumber, modifiedTimeSlots);
     }
 
 }

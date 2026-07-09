@@ -1,6 +1,8 @@
 package schedule.domain.models;
 
-public record ScheduleId(String id) {
+import java.util.UUID;
+
+public record ScheduleId(UUID id) {
 
     public ScheduleId {
         if (id == null) {

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import schedule.domain.models.*;
+import schedule.domain.repository.ScheduleRepository;
 import schedule.domain.types.SlotStatus;
 
 import javax.sql.DataSource;
@@ -14,25 +15,23 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class ScheduleRepository {
+public class JdbcScheduleRepository implements ScheduleRepository {
 
     private final DataSource dataSource;
     private final ObjectMapper objectMapper;
 
-    public ScheduleRepository(UUID scheduleId, String tenantId, TimeSlot timeSlot) {
+    public JdbcScheduleRepository(UUID scheduleId, String tenantId, TimeSlot timeSlot) {
         this.dataSource = createDataSource();
         this.objectMapper = new ObjectMapper();
         createTable();
         createInitialSchedule(scheduleId, tenantId, timeSlot);
     }
 
-    public Schedule findById(UUID scheduleId) {
+    @Override
+    public Optional<Schedule> findById(UUID scheduleId) {
         String sql = "SELECT id, tenant_id, version, slots FROM schedules WHERE id = ?";
 
         try (Connection connection = dataSource.getConnection();
@@ -61,7 +60,7 @@ public class ScheduleRepository {
                                     entry -> SlotStatus.valueOf(entry.getValue())
                             ));
 
-                    return new Schedule(new ScheduleId(id), new TenantId(tenantId), new SequenceNumber(version), slots);
+                    return Optional.of(new Schedule(new ScheduleId(UUID.fromString(id)), new TenantId(tenantId), new SequenceNumber(version), slots));
                 }
             }
 
@@ -72,6 +71,7 @@ public class ScheduleRepository {
         }
     }
 
+    @Override
     public void update(Schedule schedule) {
         String sql = "UPDATE schedules SET slots = ?::jsonb, version = version + 1 WHERE id = ? AND version = ?";
 
@@ -88,7 +88,7 @@ public class ScheduleRepository {
             String jsonSlots = objectMapper.writeValueAsString(jsonSlotsMap);
 
             statement.setString(1, jsonSlots);
-            statement.setObject(2, UUID.fromString(schedule.scheduleId().id()));
+            statement.setObject(2, schedule.scheduleId().id());
             statement.setLong(3, schedule.sequenceNumber().sequenceNumber());
 
             int rowsUpdated = statement.executeUpdate();

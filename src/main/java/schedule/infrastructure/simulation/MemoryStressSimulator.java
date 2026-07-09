@@ -103,7 +103,7 @@ public class MemoryStressSimulator {
     }
 
     private static Schedule createNewSchedule(TimeSlot timeSlot) {
-        ScheduleId scheduleId = new ScheduleId("schedule-123");
+        ScheduleId scheduleId = new ScheduleId(UUID.randomUUID());
         TenantId tenantId = new TenantId("clinica-alfa");
         SequenceNumber sequenceNumber = new SequenceNumber(1L);
         Map<TimeSlot, SlotStatus> timeSlots = new HashMap<>();

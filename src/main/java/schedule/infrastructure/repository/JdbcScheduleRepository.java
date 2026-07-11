@@ -23,11 +23,9 @@ public class JdbcScheduleRepository implements ScheduleRepository {
     private final DataSource dataSource;
     private final ObjectMapper objectMapper;
 
-    public JdbcScheduleRepository(UUID scheduleId, String tenantId, TimeSlot timeSlot) {
-        this.dataSource = createDataSource();
+    public JdbcScheduleRepository(DataSource dataSource) {
+        this.dataSource = dataSource;
         this.objectMapper = new ObjectMapper();
-        createTable();
-        createInitialSchedule(scheduleId, tenantId, timeSlot);
     }
 
     @Override
@@ -107,7 +105,7 @@ public class JdbcScheduleRepository implements ScheduleRepository {
         }
     }
 
-    private void createInitialSchedule(UUID scheduleId, String tenantId, TimeSlot timeSlot) {
+    public void save(Schedule schedule) {
         String sql = """
             INSERT INTO schedules (id, tenant_id, version, slots)
             VALUES (?, ?, ?, ?::jsonb)
@@ -117,8 +115,14 @@ public class JdbcScheduleRepository implements ScheduleRepository {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
 
+            LocalDateTime start = schedule.timeSlots().keySet().stream().findFirst().get().start();
+            SlotStatus status = schedule.timeSlots().values().stream().findFirst().get();
+
+            UUID scheduleId = schedule.scheduleId().id();
+            String tenantId = schedule.tenantId().id();
+
             Map<String, String> timeSlots = new HashMap<>();
-            timeSlots.put(timeSlot.start().toString(), SlotStatus.AVAILABLE.name());
+            timeSlots.put(start.toString(), status.name());
 
             String slotsJson = objectMapper.writeValueAsString(timeSlots);
 
@@ -140,6 +144,7 @@ public class JdbcScheduleRepository implements ScheduleRepository {
         }
     }
 
+    /*
     private void createTable() {
         String sql = """
             CREATE TABLE IF NOT EXISTS schedules (
@@ -156,9 +161,9 @@ public class JdbcScheduleRepository implements ScheduleRepository {
         } catch (SQLException e) {
             throw new RuntimeException("DDL execution failed: Unable to verify/create schedules table", e);
         }
-    }
+    }*/
 
-    private DataSource createDataSource() {
+    /*private DataSource createDataSource() {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl("jdbc:postgresql://localhost:5432/saas_db");
         config.setUsername("postgres");
@@ -166,5 +171,5 @@ public class JdbcScheduleRepository implements ScheduleRepository {
         config.setMaximumPoolSize(10);
 
         return new HikariDataSource(config);
-    }
+    }*/
 }

@@ -1,4 +1,4 @@
-package domain;
+package schedule.domain;
 
 import schedule.domain.models.TimeSlot;
 import org.junit.jupiter.api.Test;

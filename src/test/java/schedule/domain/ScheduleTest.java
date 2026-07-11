@@ -1,27 +1,29 @@
-package domain;
+package schedule.domain;
 
 import schedule.domain.exceptions.SlotAlreadyReservedException;
-import schedule.domain.models.Schedule;
-import schedule.domain.models.ScheduleId;
-import schedule.domain.models.TenantId;
-import schedule.domain.models.TimeSlot;
+import schedule.domain.models.*;
 import schedule.domain.types.SlotStatus;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 
 public class ScheduleTest {
 
+    private static final UUID SCHEDULE_ID = UUID.fromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
+    private static final ScheduleId scheduleId = new ScheduleId(SCHEDULE_ID);
+    private static final TenantId tenantId = new TenantId("clinica-alfa");
+    private static final SequenceNumber sequenceNumber = new SequenceNumber(1L);
+
+
     @Test
     void shouldReserveSlotSuccessfullyAndDemonstrateImmutability() {
         // Arrange: Prepare identifiers and a map with an AVAILABLE slot
-        ScheduleId scheduleId = new ScheduleId("schedule-123");
-        TenantId tenantId = new TenantId("clinica-alfa");
         TimeSlot originalSlot = new TimeSlot(
                 LocalDateTime.of(2026, 6, 20, 9, 0),
                 LocalDateTime.of(2026, 6, 20, 9, 30)
@@ -31,7 +33,7 @@ public class ScheduleTest {
         initialSlots.put(originalSlot, SlotStatus.AVAILABLE);
 
         // Instantiate the base schedule
-        Schedule initialSchedule = new Schedule(scheduleId, tenantId, initialSlots);
+        Schedule initialSchedule = new Schedule(scheduleId, tenantId, sequenceNumber, initialSlots);
 
         // Act: Execute the reservation (save the returned new schedule)
         Schedule modifiedSchedule = initialSchedule.reserveSlot(originalSlot);
@@ -53,8 +55,6 @@ public class ScheduleTest {
     @Test
     void shouldThrowExceptionWhenSlotIsAlreadyReserved() {
         // Arrange: Create a schedule where the slot is already reserved from the start
-        ScheduleId scheduleId = new ScheduleId("schedule-123");
-        TenantId tenantId = new TenantId("clinica-alfa");
         TimeSlot occupiedSlot = new TimeSlot(
                 LocalDateTime.of(2026, 6, 20, 9, 0),
                 LocalDateTime.of(2026, 6, 20, 9, 30)
@@ -63,7 +63,7 @@ public class ScheduleTest {
         Map<TimeSlot, SlotStatus> slots = new HashMap<>();
         slots.put(occupiedSlot, SlotStatus.RESERVED);
 
-        Schedule schedule = new Schedule(scheduleId, tenantId, slots);
+        Schedule schedule = new Schedule(scheduleId, tenantId, sequenceNumber, slots);
 
         // Act & Assert: Trying to reserve the same slot must fail with your business exception
         assertThrows(SlotAlreadyReservedException.class, () -> {

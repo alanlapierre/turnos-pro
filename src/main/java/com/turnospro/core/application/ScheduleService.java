@@ -5,7 +5,9 @@ import com.turnospro.core.domain.ScheduleId;
 import com.turnospro.core.domain.TimeSlot;
 import com.turnospro.core.ports.in.ReserveSlotUseCase;
 import com.turnospro.core.ports.out.ScheduleRepository;
+import io.github.resilience4j.retry.annotation.Retry;
 
+@Retry(name = "reserveSlot")
 public class ScheduleService implements ReserveSlotUseCase {
 
     private final ScheduleRepository repository;

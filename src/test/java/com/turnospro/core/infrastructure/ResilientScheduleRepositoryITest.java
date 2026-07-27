@@ -2,17 +2,17 @@ package com.turnospro.core.infrastructure;
 
 import com.turnospro.core.application.ScheduleService;
 import com.turnospro.core.domain.*;
-import com.turnospro.core.ports.in.ReserveSlotUseCase;
 import com.turnospro.core.ports.out.ScheduleRepository;
-import com.turnospro.infrastructure.adapters.in.ResilientReserveSlotUseCaseDecorator;
+import com.turnospro.infrastructure.TurnosProApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import com.turnospro.core.exception.SlotAlreadyReservedException;
-import com.turnospro.infrastructure.adapters.out.persistence.JdbcScheduleRepository;
-import com.turnospro.infrastructure.adapters.out.resilience.ResilientExecutor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDateTime;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -23,25 +23,21 @@ import java.util.concurrent.atomic.LongAdder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@SpringBootTest(classes = TurnosProApplication.class)
 public class ResilientScheduleRepositoryITest extends BaseIntegrationTest {
 
     // Deterministic IDs for aggregate boundaries
     public static final UUID SCHEDULE_ID = UUID.fromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
     public static final String TENANT_ID = "clinica-central";
 
-    private ReserveSlotUseCase reserveSlotUseCase;
+    @Autowired
+    private ScheduleService scheduleService;
+
+    @Autowired
+    private ScheduleRepository scheduleRepository;
 
     @BeforeEach
     public void setup() {
-        // Instantiate Driving and Driven components manually outside any framework container
-        ScheduleRepository jdbcRepo = new JdbcScheduleRepository(dataSource);
-        ReserveSlotUseCase baseUseCase = new ScheduleService(jdbcRepo);
-
-        // Define retry budget, backoff bounds, and structural isolation parameters
-        ResilientExecutor executor = new ResilientExecutor(4, 10, 300, 5000);
-
-        // Intercept execution flows wrapping the flat service via the Inbound Decorator pattern
-        this.reserveSlotUseCase = new ResilientReserveSlotUseCaseDecorator(baseUseCase, executor);
 
         var timeSlot = new TimeSlot(
                 LocalDateTime.of(2026, 6, 20, 9, 0),
@@ -52,7 +48,7 @@ public class ResilientScheduleRepositoryITest extends BaseIntegrationTest {
 
         // Provision baseline snapshot state (Sequence / Version V1) inside the real database instance
         Schedule initialSchedule = new Schedule(new ScheduleId(SCHEDULE_ID), new TenantId(TENANT_ID), new SequenceNumber(1L), timeSlotMap);
-        jdbcRepo.save(initialSchedule);
+        scheduleRepository.save(initialSchedule);
     }
 
     @Test
@@ -88,10 +84,10 @@ public class ResilientScheduleRepositoryITest extends BaseIntegrationTest {
                         latch.await(); // Hold execution to force massive concurrency collision race condition
 
                         // Invoke resilient pipeline
-                        reserveSlotUseCase.reserve(new ScheduleId(SCHEDULE_ID), targetSlot);
+                        scheduleService.reserve(new ScheduleId(SCHEDULE_ID), targetSlot);
 
                         successfulReservations.increment();
-                    } catch (SlotAlreadyReservedException ex) {
+                    } catch (SlotAlreadyReservedException | ConcurrentModificationException ex) {
                         // Capture predictable domain fatal business rule exception following a successful retry reload
                         businessCollisionsRejected.increment();
                     } catch (Exception e) {

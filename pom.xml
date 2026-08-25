@@ -23,49 +23,101 @@
     </properties>
 
     <dependencies>
+        <!-- ================================================================= -->
+        <!-- Core Web & Persistence Infrastructure                             -->
+        <!-- ================================================================= -->
+
+        <!-- Spring Boot Web Starter: Embedded Tomcat, REST controllers, and Jackson integration -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Spring Data JDBC: Lightweight persistence support with built-in HikariCP connection pool -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jdbc</artifactId>
         </dependency>
 
+        <!-- PostgreSQL JDBC Driver: Low-level database communication runtime driver -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Jackson Databind: JSON serialization and deserialization for JSONB data mapping -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
+        <!-- ================================================================= -->
+        <!-- Database Schema Versioning & Migrations                           -->
+        <!-- ================================================================= -->
+
+        <!-- Flyway Core: Automated database migration engine -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
 
+        <!-- Flyway PostgreSQL Extension: PostgreSQL dialect database migration support -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
+        <!-- ================================================================= -->
+        <!-- Fault Tolerance & Resilience                                      -->
+        <!-- ================================================================= -->
+
+        <!-- Resilience4j: Retry, circuit breaker, rate limiter, and bulkhead AOP integration -->
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-spring-boot3</artifactId>
             <version>2.2.0</version>
         </dependency>
 
+        <!-- ================================================================= -->
+        <!-- JJWT (Java JSON Web Token) - Security & Multi-Tenancy Engine      -->
+        <!-- ================================================================= -->
+
+        <!-- JJWT API: Public interfaces and classes for building and parsing tokens -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.6</version>
+        </dependency>
+
+        <!-- JJWT Impl: Cryptographic signing algorithms implementation (Runtime only) -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- JJWT Jackson: JSON claim deserializer using Spring Jackson mapper (Runtime only) -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ================================================================= -->
+        <!-- Testing & Ephemeral Infrastructure                                -->
+        <!-- ================================================================= -->
+
+        <!-- Spring Boot Test Starter: JUnit 5, AssertJ, Mockito, and MockMvc test environment -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
 
+        <!-- Testcontainers Core: Programmatic Docker lifecycle management for integration testing -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
@@ -73,6 +125,7 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Testcontainers PostgreSQL: Ephemeral isolated PostgreSQL container runner -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
@@ -83,11 +136,29 @@
 
     <build>
         <plugins>
+            <!-- 1. Maven Compiler Plugin: Enables Java 21 preview features during compilation -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>21</release>
+                    <compilerArgs>
+                        <arg>--enable-preview</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <!-- 2. Spring Boot Maven Plugin: Passes preview flags to the JVM at runtime and test phases -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <jvmArguments>--enable-preview</jvmArguments>
+                </configuration>
             </plugin>
         </plugins>
     </build>
+
 
 </project>

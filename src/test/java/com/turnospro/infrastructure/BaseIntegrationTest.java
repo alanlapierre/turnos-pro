@@ -1,7 +1,6 @@
-package com.turnospro.core.infrastructure;
+package com.turnospro.infrastructure;
 
-import com.zaxxer.hikari.HikariConfig;
-import org.flywaydb.core.Flyway;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +17,7 @@ public abstract class BaseIntegrationTest {
 
     /**
      * Singleton Container Pattern to share a single ephemeral database instance
-     * across the entire test suite execution execution lifecycle.
+     * across the entire test suite execution lifecycle[cite: 3].
      */
     protected static final PostgreSQLContainer<?> postgres =
             new PostgreSQLContainer<>("postgres:16-alpine")
@@ -26,8 +25,7 @@ public abstract class BaseIntegrationTest {
                     .withUsername("matrix_eng")
                     .withPassword("secret");
 
-
-    // Inyecta la URL y puerto efímero de Docker en la configuración de Spring
+    // Injects dynamic Docker host URL and ephemeral port into Spring Boot environment[cite: 3]
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
@@ -35,24 +33,21 @@ public abstract class BaseIntegrationTest {
         registry.add("spring.datasource.password", postgres::getPassword);
     }
 
-    //Inyectamos el DataSource real que creó Spring Boot vinculado al contenedor
+    // Injects the real DataSource configured by Spring Boot pointing to the container instance[cite: 3]
     @Autowired
     protected DataSource dataSource;
-
-
-    //protected static HikariDataSource dataSource;
 
     @BeforeAll
     public static void startCluster() {
         if (!postgres.isRunning()) {
-            // Spin up the container instance on a dynamic, ephemeral host port
+            // Spin up the container instance on a dynamic, ephemeral host port[cite: 3]
             postgres.start();
         }
     }
 
     @AfterEach
     public void cleanState() {
-        // Enforce atomic database truncation between tests to prevent State Pollution
+        // Enforce atomic database truncation between tests to prevent State Pollution[cite: 3]
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute("TRUNCATE TABLE schedules RESTART IDENTITY CASCADE;");

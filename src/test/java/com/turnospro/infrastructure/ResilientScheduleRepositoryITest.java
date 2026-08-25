@@ -1,9 +1,9 @@
-package com.turnospro.core.infrastructure;
+package com.turnospro.infrastructure;
 
 import com.turnospro.core.application.ScheduleService;
 import com.turnospro.core.domain.*;
 import com.turnospro.core.ports.out.ScheduleRepository;
-import com.turnospro.infrastructure.TurnosProApplication;
+import com.turnospro.TurnosProApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

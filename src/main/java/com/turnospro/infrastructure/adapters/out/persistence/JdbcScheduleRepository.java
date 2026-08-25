@@ -7,6 +7,8 @@ import com.turnospro.core.domain.*;
 import com.turnospro.core.exception.ScheduleNotFoundException;
 import com.turnospro.core.ports.out.ScheduleRepository;
 import com.turnospro.infrastructure.adapters.out.persistence.exception.InfrastructureDatabaseException;
+import com.turnospro.infrastructure.security.TenantContext;
+import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -17,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
+@Repository
 public class JdbcScheduleRepository implements ScheduleRepository {
 
     private final DataSource dataSource;
@@ -30,12 +32,18 @@ public class JdbcScheduleRepository implements ScheduleRepository {
 
     @Override
     public Optional<Schedule> findById(ScheduleId scheduleId) {
-        String sql = "SELECT id, tenant_id, version, slots FROM schedules WHERE id = ?";
+
+        // 1. Extraemos el tenant activo del ScopedValue sin ensuciar la firma del método
+        TenantId currentTenant = TenantContext.getRequiredTenantId();
+
+        // 2. Blindaje Multi-Tenant en la consulta
+        String sql = "SELECT id, tenant_id, version, slots FROM schedules WHERE tenant_id = ? AND id = ?";
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
-            statement.setObject(1, scheduleId.id());
+            statement.setString(1, currentTenant.id());
+            statement.setObject(2, scheduleId.id());
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -73,7 +81,11 @@ public class JdbcScheduleRepository implements ScheduleRepository {
 
     @Override
     public void update(Schedule schedule) {
-        String sql = "UPDATE schedules SET slots = ?::jsonb, version = version + 1 WHERE id = ? AND version = ?";
+
+        TenantId currentTenant = TenantContext.getRequiredTenantId();
+
+        // 3. El UPDATE exige coincidencia de ID, VERSION y TENANT_ID
+        String sql = "UPDATE schedules SET slots = ?::jsonb, version = version + 1 WHERE tenant_id = ? AND id = ? AND version = ?";
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -88,15 +100,17 @@ public class JdbcScheduleRepository implements ScheduleRepository {
             String jsonSlots = objectMapper.writeValueAsString(jsonSlotsMap);
 
             statement.setString(1, jsonSlots);
-            statement.setObject(2, schedule.scheduleId().id());
-            statement.setLong(3, schedule.sequenceNumber().sequenceNumber());
+            statement.setString(2, currentTenant.id());
+            statement.setObject(3, schedule.scheduleId().id());
+            statement.setLong(4, schedule.sequenceNumber().sequenceNumber());
 
             int rowsUpdated = statement.executeUpdate();
 
             // Atomic Relational CAS Check: If zero rows were altered, another thread changed the version
+            // 4. Si da 0, puede ser colisión optimista O intento de mutación cross-tenant
             if (rowsUpdated == 0) {
                 throw new ConcurrentModificationException(
-                        "Optimistic lock collision detected: The entity version changed under heavy concurrent write load.");
+                        "Optimistic lock collision or tenant mismatch detected for ID: " + schedule.scheduleId().id());
             }
 
         } catch (SQLException e) {
@@ -108,10 +122,14 @@ public class JdbcScheduleRepository implements ScheduleRepository {
 
     @Override
     public void save(Schedule schedule) {
+
+        TenantId currentTenant = TenantContext.getRequiredTenantId();
+
+        // 5. El ON CONFLICT evalúa la unicidad compuesta de (id, tenant_id)
         String sql = """
             INSERT INTO schedules (id, tenant_id, version, slots)
             VALUES (?, ?, ?, ?::jsonb)
-            ON CONFLICT (id) DO NOTHING;
+            ON CONFLICT (tenant_id, id) DO NOTHING;
             """;
 
         try (Connection connection = dataSource.getConnection();
@@ -121,7 +139,6 @@ public class JdbcScheduleRepository implements ScheduleRepository {
             SlotStatus status = schedule.timeSlots().values().stream().findFirst().get();
 
             UUID scheduleId = schedule.scheduleId().id();
-            String tenantId = schedule.tenantId().id();
 
             Map<String, String> timeSlots = new HashMap<>();
             timeSlots.put(start.toString(), status.name());
@@ -129,8 +146,8 @@ public class JdbcScheduleRepository implements ScheduleRepository {
             String slotsJson = objectMapper.writeValueAsString(timeSlots);
 
             stmt.setObject(1, scheduleId);
-            stmt.setString(2, tenantId);
-            stmt.setLong(3, 1L);
+            stmt.setString(2, currentTenant.id());
+            stmt.setLong(3, schedule.sequenceNumber().sequenceNumber());
             stmt.setString(4, slotsJson);
 
             int rowsAffected = stmt.executeUpdate();
@@ -142,7 +159,7 @@ public class JdbcScheduleRepository implements ScheduleRepository {
             }
 
         } catch (Exception e) {
-            throw new InfrastructureDatabaseException("Critical failure during database seed initialization", e);
+           throw new InfrastructureDatabaseException("Critical failure during database seed initialization", e);
         }
     }
 

@@ -117,6 +117,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Spring WebFlux Test: Provides WebTestClient and MockMvcWebTestClient for actuator endpoint testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Testcontainers Core: Programmatic Docker lifecycle management for integration testing -->
         <dependency>
             <groupId>org.testcontainers</groupId>
@@ -132,6 +139,35 @@
             <version>1.19.7</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- ================================================================= -->
+        <!-- Observability, Metrics & Distributed Tracing (Micrometer + OTel)  -->
+        <!-- ================================================================= -->
+
+        <!-- Spring Boot Actuator: Core management and monitoring endpoints -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Micrometer Prometheus Registry: Exposes metrics in Prometheus TSDB format -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- Micrometer Tracing Bridge OTel: Bridges Observation API to OpenTelemetry -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+
+        <!-- OpenTelemetry OTLP Exporter: Standard trace context propagation format -->
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -149,7 +185,17 @@
                 </configuration>
             </plugin>
 
-            <!-- 2. Spring Boot Maven Plugin: Passes preview flags to the JVM at runtime and test phases -->
+            <!-- 2. Maven Surefire Plugin: Runs tests with enable-preview JVM flag -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <argLine>--enable-preview</argLine>
+                </configuration>
+            </plugin>
+
+            <!-- 3. Spring Boot Maven Plugin: Passes preview flags to the JVM at runtime -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

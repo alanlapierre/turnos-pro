@@ -8,8 +8,6 @@ import com.turnospro.core.exception.ScheduleNotFoundException;
 import com.turnospro.core.ports.out.ScheduleRepository;
 import com.turnospro.infrastructure.adapters.out.persistence.exception.InfrastructureDatabaseException;
 import com.turnospro.infrastructure.security.TenantContext;
-import org.springframework.stereotype.Repository;
-
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -19,7 +17,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Repository
 public class JdbcScheduleRepository implements ScheduleRepository {
 
     private final DataSource dataSource;
@@ -33,10 +30,10 @@ public class JdbcScheduleRepository implements ScheduleRepository {
     @Override
     public Optional<Schedule> findById(ScheduleId scheduleId) {
 
-        // 1. Extraemos el tenant activo del ScopedValue sin ensuciar la firma del método
+        // 1. Extract the active tenant from ScopedValue without polluting the method signature
         TenantId currentTenant = TenantContext.getRequiredTenantId();
 
-        // 2. Blindaje Multi-Tenant en la consulta
+        // 2. Multi-Tenant hardening on the query
         String sql = "SELECT id, tenant_id, version, slots FROM schedules WHERE tenant_id = ? AND id = ?";
 
         try (Connection connection = dataSource.getConnection();
@@ -84,7 +81,7 @@ public class JdbcScheduleRepository implements ScheduleRepository {
 
         TenantId currentTenant = TenantContext.getRequiredTenantId();
 
-        // 3. El UPDATE exige coincidencia de ID, VERSION y TENANT_ID
+        // 3. The UPDATE requires ID, VERSION and TENANT_ID to match
         String sql = "UPDATE schedules SET slots = ?::jsonb, version = version + 1 WHERE tenant_id = ? AND id = ? AND version = ?";
 
         try (Connection connection = dataSource.getConnection();
@@ -107,7 +104,7 @@ public class JdbcScheduleRepository implements ScheduleRepository {
             int rowsUpdated = statement.executeUpdate();
 
             // Atomic Relational CAS Check: If zero rows were altered, another thread changed the version
-            // 4. Si da 0, puede ser colisión optimista O intento de mutación cross-tenant
+            // 4. If zero rows were affected, it could be an optimistic lock collision or cross-tenant mutation attempt
             if (rowsUpdated == 0) {
                 throw new ConcurrentModificationException(
                         "Optimistic lock collision or tenant mismatch detected for ID: " + schedule.scheduleId().id());
@@ -125,7 +122,7 @@ public class JdbcScheduleRepository implements ScheduleRepository {
 
         TenantId currentTenant = TenantContext.getRequiredTenantId();
 
-        // 5. El ON CONFLICT evalúa la unicidad compuesta de (id, tenant_id)
+        // 5. ON CONFLICT evaluates the composite uniqueness of (id, tenant_id)
         String sql = """
             INSERT INTO schedules (id, tenant_id, version, slots)
             VALUES (?, ?, ?, ?::jsonb)

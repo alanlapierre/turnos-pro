@@ -4,6 +4,7 @@ import com.turnospro.core.application.ScheduleService;
 import com.turnospro.core.domain.*;
 import com.turnospro.core.ports.out.ScheduleRepository;
 import com.turnospro.TurnosProApplication;
+import com.turnospro.infrastructure.security.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,7 @@ public class ResilientScheduleRepositoryITest extends BaseIntegrationTest {
 
         // Provision baseline snapshot state (Sequence / Version V1) inside the real database instance
         Schedule initialSchedule = new Schedule(new ScheduleId(SCHEDULE_ID), new TenantId(TENANT_ID), new SequenceNumber(1L), timeSlotMap);
-        scheduleRepository.save(initialSchedule);
+        ScopedValue.where(TenantContext.TENANT_KEY, new TenantId(TENANT_ID)).run(() -> scheduleRepository.save(initialSchedule));
     }
 
     @Test
@@ -83,8 +84,11 @@ public class ResilientScheduleRepositoryITest extends BaseIntegrationTest {
                     try {
                         latch.await(); // Hold execution to force massive concurrency collision race condition
 
-                        // Invoke resilient pipeline
-                        scheduleService.reserve(new ScheduleId(SCHEDULE_ID), targetSlot);
+                        // ScopedValue does not propagate across virtual threads; re-bind per thread
+                        ScopedValue.where(TenantContext.TENANT_KEY, new TenantId(TENANT_ID)).run(() -> {
+                            // Invoke resilient pipeline
+                            scheduleService.reserve(new ScheduleId(SCHEDULE_ID), targetSlot);
+                        });
 
                         successfulReservations.increment();
                     } catch (SlotAlreadyReservedException | ConcurrentModificationException ex) {

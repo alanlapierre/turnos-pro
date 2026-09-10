@@ -6,7 +6,7 @@ public record ScheduleId(UUID id) {
 
     public ScheduleId {
         if (id == null) {
-            throw new IllegalArgumentException("agenda id cannot be null");
+            throw new IllegalArgumentException("Schedule ID cannot be null");
         }
     }
 }

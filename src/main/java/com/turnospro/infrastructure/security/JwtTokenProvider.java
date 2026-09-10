@@ -18,7 +18,7 @@ public class JwtTokenProvider {
     private final long expirationMillis;
 
     public JwtTokenProvider(
-            @Value("${jwt.secret:ClaveSuperSecretaDePruebaParaFirmarTokensJWT123456}") String secret,
+            @Value("${jwt.secret:SuperSecretTestKeyForJWTSigning123456}") String secret,
             @Value("${jwt.expiration-ms:3600000}") long expirationMillis) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMillis = expirationMillis;

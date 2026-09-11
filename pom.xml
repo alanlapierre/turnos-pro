@@ -22,6 +22,19 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- AWS SDK for Java v2: Bill of Materials (BOM) to manage consistent versions -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>2.25.16</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- ================================================================= -->
         <!-- Core Web & Persistence Infrastructure                             -->
@@ -166,6 +179,24 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp</artifactId>
+        </dependency>
+
+        <!-- ================================================================= -->
+        <!-- AWS SDK v2: Messaging Infrastructure (LocalStack / SQS)           -->
+        <!-- ================================================================= -->
+
+        <!-- AWS SDK v2 SQS Client: Lightweight, non-blocking client for queue operations -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sqs</artifactId>
+        </dependency>
+
+        <!-- Testcontainers LocalStack: Ephemeral LocalStack container runner for integration tests -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>localstack</artifactId>
+            <version>1.19.7</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

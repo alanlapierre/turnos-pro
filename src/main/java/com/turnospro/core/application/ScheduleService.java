@@ -3,7 +3,9 @@ package com.turnospro.core.application;
 import com.turnospro.core.domain.Schedule;
 import com.turnospro.core.domain.ScheduleId;
 import com.turnospro.core.domain.TimeSlot;
+import com.turnospro.core.domain.event.SlotReservedEvent;
 import com.turnospro.core.ports.in.ReserveSlotUseCase;
+import com.turnospro.core.ports.out.EventPublisherPort;
 import com.turnospro.core.ports.out.ScheduleRepository;
 import io.github.resilience4j.retry.annotation.Retry;
 
@@ -11,9 +13,11 @@ import io.github.resilience4j.retry.annotation.Retry;
 public class ScheduleService implements ReserveSlotUseCase {
 
     private final ScheduleRepository repository;
+    private final EventPublisherPort eventPublisherPort;
 
-    public ScheduleService(ScheduleRepository repository) {
+    public ScheduleService(ScheduleRepository repository, EventPublisherPort eventPublisherPort) {
         this.repository = repository;
+        this.eventPublisherPort = eventPublisherPort;
     }
 
     @Override
@@ -28,6 +32,10 @@ public class ScheduleService implements ReserveSlotUseCase {
         repository.update(updatedSchedule);
         // If a concurrent transaction wins the update race on disk, repository.update()
         // will throw a ConcurrentModificationException here, aborting the thread execution.
+
+        // 4. Asynchronously publish the event through the Port
+        SlotReservedEvent event = SlotReservedEvent.from(scheduleId, updatedSchedule.tenantId(), timeSlot);
+        eventPublisherPort.publishSlotReserved(event);
     }
 }
 

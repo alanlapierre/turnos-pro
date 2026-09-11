@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class ObservabilityIntegrationTest extends BaseIntegrationTest {
+class ObservabilityIT extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

@@ -23,12 +23,10 @@ Todos los comandos usan el Maven Wrapper (`./mvnw`):
 
 Hexagonal: `core/` (domain, ports in/out, application) y `infrastructure/` (adapters in/out, web, security, config). La lógica de dominio vive en `core/`, la infraestructura en `infrastructure/`. Punto de entrada: `com.turnospro.TurnosProApplication`.
 
-## Convención de commits, tags y código
+## Código
 
-- **Idiomas**: el código (comentarios, `@DisplayName`, mensajes de excepciones) se escribe en **inglés**; los mensajes de commit, en **español**.
-- **Commits**: Conventional Commits (`feat:`, `chore:`, `fix:`, `refactor:`), subject de una línea, sin cuerpo. Los `feat:` incluyen el número de post en el subject: `feat: post N - <descripción>`.
-- **Tags**: cada feature/publicación se cierra con un tag **anotado** `post-N` (mismo número del commit feat, numeración correlativa). El mensaje del tag replica el subject: `post-N : <descripción>`.
-- Los commits de mantenimiento (`chore:`/`fix:`/`refactor:`) **no** llevan tag.
-- El próximo número de post libre es `12`; actualizar el número libre tras cada release etiquetado.
+- El código (comentarios, `@DisplayName`, mensajes de excepciones) se escribe en **inglés**.
+
+Los commits, tags y push se gestionan con el comando `commit` (`.opencode/command/commit.md`).
 
 Ignorar: `target/`, `.idea`, binarios y configuración oculta.
